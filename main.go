@@ -2,26 +2,24 @@ package main
 
 import (
 	"flag"
-	"github.com/lanceryou/gen-db/internal/dbr"
-	"github.com/lanceryou/gen-db/internal/template"
 	"os"
 	"os/exec"
+
+	"github.com/lanceryou/gen-db/internal/db"
+	"github.com/lanceryou/gen-db/internal/template"
 )
 
 const (
 	emptyTable = "empty table"
 )
 
-var cfg = flag.String("p", "./config/service.yml", "db config path")
+var path = flag.String("path", "./config/service.yml", "db config path")
 var tableName = flag.String("t", emptyTable, "table name")
-var ormType = flag.String("o", "craft", "orm type.")
-var dbName = flag.String("d", "", "inject name or db name")
+var ormType = flag.String("o", "xorm", "orm type.")
+var datasource = flag.String("d", "", "datasource")
+var injectName = flag.String("i", "", "inject name")
+var packageName = flag.String("p", "model", "package name")
 
-// flag 读取文件路径 文件内容
-// 解析数据库配置
-// 初始化数据库连接
-// 读取数据表 列 字段 属性
-// 模板生成代码到指定目录
 func main() {
 	flag.Parse()
 
@@ -29,12 +27,12 @@ func main() {
 		panic("miss table name please input -t=$tablename")
 	}
 
-	conf := dbr.GetDBConf(*cfg)
-	attr := dbr.QueryDBAttr(conf, *tableName)
-	code := template.Generate(attr)
-
+	attr := db.QueryDBAttr(getConn(*path, *datasource, *injectName), *tableName, *packageName)
+	code := template.Generate(attr, *ormType)
+	mock := template.MockTemplate(attr, *ormType)
+	writeFile(mock, *tableName+"_gen_test.go")
 	writeFile(code, *tableName+"_gen.go")
-	cmd := exec.Command("go", "fmt", *tableName+"_gen.go")
+	cmd := exec.Command("go", "fmt", *tableName+"_gen.go", *tableName+"_gen_test.go")
 	if err := cmd.Run(); err != nil {
 		panic(err)
 	}
@@ -50,4 +48,13 @@ func writeFile(content string, path string) {
 	if _, err := fileObj.Write(contents); err != nil {
 		panic(err)
 	}
+}
+
+func getConn(path string, datasource string, injectName string) *db.Connection {
+	if datasource != "" {
+		return db.Open(datasource, injectName)
+	}
+
+	conf := db.GetDBConf(path)
+	return db.Open(conf.Datasource(), conf.ProvideName)
 }

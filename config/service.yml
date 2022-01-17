@@ -1,6 +1,0 @@
-db:
-  crmMain:
-    username: root
-    dbname: shopee_seller_crm_main_db
-    maxopenconns: 200
-    maxidleconns: 200
