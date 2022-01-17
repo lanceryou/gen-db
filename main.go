@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/lanceryou/gen-db/internal/db"
-	"github.com/lanceryou/gen-db/internal/template"
+	"github.com/lanceryou/gen-db/template"
 )
 
 const (
